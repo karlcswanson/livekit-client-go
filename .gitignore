@@ -1,3 +1,4 @@
 *.ogg
 *.h264
 *.env
+livekit-client-go
