@@ -27,7 +27,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func newMain() {
+func livekitClient() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -59,14 +59,12 @@ func newMain() {
 }
 
 func main() {
-	go newMain()
+	go livekitClient()
 	gst.StartMainLoop()
 }
 
 func onTrackSubscribed(track *webrtc.TrackRemote, publication *lksdk.RemoteTrackPublication, rp *lksdk.RemoteParticipant) {
-	fileName := fmt.Sprintf("%s-%s", rp.Identity(), track.ID())
-	fmt.Println("write track to file ", fileName)
-	NewTrackWriter(track, rp.WritePLI, fileName)
+	NewTrackWriter(track)
 }
 
 const (
@@ -79,7 +77,7 @@ type TrackWriter struct {
 	track    *webrtc.TrackRemote
 }
 
-func NewTrackWriter(track *webrtc.TrackRemote, pliWriter lksdk.PLIWriter, fileName string) (*TrackWriter, error) {
+func NewTrackWriter(track *webrtc.TrackRemote) (*TrackWriter, error) {
 	var (
 		sb       *samplebuilder.SampleBuilder
 		pipeline *gst.Pipeline
@@ -115,27 +113,11 @@ func (t *TrackWriter) start() {
 		i, _, readErr := t.track.Read(buf)
 
 		if readErr != nil {
-			panic(readErr)
+			t.pipeline.Stop()
+			fmt.Printf("track error: %s\n", readErr.Error())
+			return
 		}
 
 		t.pipeline.Push(buf[:i])
-
-		// pkt, _, err := t.track.ReadRTP()
-		// if err != nil {
-		// 	break
-		// }
-		// t.sb.Push(pkt)
-
-		// for _, p := range t.sb.PopPackets() {
-
-		// 	opusPacket := codecs.OpusPacket{}
-		// 	if _, err := opusPacket.Unmarshal(p.Payload); err != nil {
-		// 		payload := opusPacket.Payload[0:]
-		// 		t.pipeline.Push(payload)
-		// 	}
-		// 	// p.Unmarshal(p.Payload)
-		// 	// t.pipeline.Push(p.Payload[0:])
-
-		// }
 	}
 }
